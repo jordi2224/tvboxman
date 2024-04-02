@@ -36,7 +36,7 @@ def state_machine(animation):
             time.sleep(3)
         else:
             animation.current_state = "idle"
-            time.sleep(7)
+            time.sleep(10) #Diego ERA UN 7
 
 
 
