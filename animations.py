@@ -18,8 +18,7 @@ Animations should have layers matching the names in this list
 # IDLE ANIMATION
 IDLE = {"face": "idle_face.png", "mouth": "idle_mouth.png", "eyes": ["idle_eyes.png", "idle_blink.png"], "flair": None}
 MAD = {"face": "idle_face.png", "mouth": "mad_mouth.png", "eyes": "mad_eyes.png", "flair": None}
-LOL = {"face": "idle_face.png", "mouth": "lol_mouth.png", "eyes": "lol_eyes.png", "flair": None}
-# animLOL = {"face": "idle_face.png", "mouth": ["lol_mouth.png", "idle_mouth.png"], "eyes": "lol_eyes.png", "flair": None}
+LOL = {"face": "idle_face.png", "mouth": ["lol_mouth.png", "idle_mouth.png"], "eyes": "lol_eyes.png", "flair": None}
 
 def generate_image(layers: list, working_resolution: tuple):
     """Gets a layers list and generates the final image
@@ -96,7 +95,7 @@ class FrameGenerator:
         self.idle_layers = load_layer_images(ressource_path, IDLE, working_resolution)
         self.idle_eyes_state = 0 # 0 is open, 1 is closed
         self.next_change = 0 # Time to change the eyes state
-        self.blink_delay = 24
+        self.blink_delay = 35
         self.blink_duration = 5
         self.idle_animation_buffer = None
 
@@ -105,9 +104,12 @@ class FrameGenerator:
         self.mad_layers = load_layer_images(ressource_path, MAD, working_resolution)
 
         # Lol animation initialization
-        self.lol_animation_buffer = None
         self.lol_layers = load_layer_images(ressource_path, LOL, working_resolution)
-
+        self.lol_mouth_state = 0 #open mouth
+        self.next_mouth_change = self.current_frame #Time to change the mouth state
+        self.laugh_delay = 5
+        self.laugh_duration = 4
+        self.lol_animation_buffer = None
         
 
     def execute_animation(self):
@@ -157,7 +159,22 @@ class FrameGenerator:
         """Lol animation
         """
         if self.lol_animation_buffer is None:
-            # Generate the new frame
-            layer_arrays = [self.background, self.lol_layers["face"], self.lol_layers["mouth"], self.lol_layers["eyes"]]
+            layer_arrays = [self.background, self.lol_layers["face"], self.lol_layers["mouth"][0], self.lol_layers["eyes"]]
             self.lol_animation_buffer = generate_image(layer_arrays, self.working_resolution)
+        else:
+            # Do we need to change the mouth state?
+            if self.current_frame >= self.next_mouth_change:
+
+                # Change the mouth state
+                if self.lol_mouth_state== 0:
+                    self.lol_mouth_state= 1
+                    self.next_mouth_change = self.current_frame + self.laugh_duration
+                else:
+                    self.lol_mouth_state= 0
+                    self.next_mouth_change = self.current_frame + self.laugh_delay
+
+                # Generate the new frame
+                layer_arrays = [self.background, self.lol_layers["face"], self.lol_layers["mouth"][self.lol_mouth_state],self.lol_layers["eyes"]]
+                self.lol_animation_buffer = generate_image(layer_arrays, self.working_resolution)
+
         return self.lol_animation_buffer
