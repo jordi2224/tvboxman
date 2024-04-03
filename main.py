@@ -34,26 +34,22 @@ label = None
 def state_machine(animation, root):
     """A simple state machine to control the animation
     """
-    print("awake")
     while True:
         key = keyboard.read_event().name
-        match key:
-            case 'a':
-                # print('You Pressed the A Key!')
-                animation.current_state = "mad"
-            case 's':
-                # print('You Pressed the S Key!')
-                animation.current_state = "idle"
-            case 'd':
-                # print('You Pressed the D Key!')
-                animation.current_state = "lol"
-            case 'esc':
-                # print('sacabo XD')
-                root.destroy()  # close the program
-                break
-
+        print(key)
+        if keyboard.is_pressed(key):
+            match key:
+                case 'a':
+                    animation.current_state = "mad"
+                case 's':
+                    animation.current_state = "lol"
+                case 'esc':
+                    root.destroy()  # close the program
+                    break
+        else:
+            #key is released
+            animation.current_state = "idle"
     # detectar micro aqui?
-
 
 def child_thread(root):
     global output_object
