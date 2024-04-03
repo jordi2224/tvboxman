@@ -35,21 +35,23 @@ def state_machine(animation, root):
     """A simple state machine to control the animation
     """
     print("awake")
-    #hasta que no carge esto, los botones no funcionan, pero no creo que sea problema, tambien hay delay en cambiar de expresiones, ya veremos como lo solucionamos (?)
     while True:
-        if keyboard.is_pressed('a'):
-            print('You Pressed the A Key!')
-            animation.current_state = "mad"
-        elif keyboard.is_pressed('s'):
-            print('You Pressed the S Key!')
-            animation.current_state = "idle"
-        elif keyboard.is_pressed('d'):
-            print('You Pressed the D Key!')
-            animation.current_state = "lol"
-        elif keyboard.is_pressed('ESC'):
-            print('sacabo XD')
-            root.destroy()  # close the program
-            break
+        key = keyboard.read_event().name
+        match key:
+            case 'a':
+                # print('You Pressed the A Key!')
+                animation.current_state = "mad"
+            case 's':
+                # print('You Pressed the S Key!')
+                animation.current_state = "idle"
+            case 'd':
+                # print('You Pressed the D Key!')
+                animation.current_state = "lol"
+            case 'esc':
+                # print('sacabo XD')
+                root.destroy()  # close the program
+                break
+
     # detectar micro aqui?
 
 
