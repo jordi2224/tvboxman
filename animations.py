@@ -95,7 +95,7 @@ class FrameGenerator:
         self.idle_layers = load_layer_images(ressource_path, IDLE, working_resolution)
         self.idle_eyes_state = 0 # 0 is open, 1 is closed
         self.next_change = 0 # Time to change the eyes state
-        self.blink_delay = 35
+        self.blink_delay = 100
         self.blink_duration = 5
         self.idle_animation_buffer = None
 

@@ -36,19 +36,19 @@ def state_machine(animation, root):
     """
     while True:
         key = keyboard.read_event().name
-        if keyboard.is_pressed(key):
-            match key:
-                case 'a':
-                    animation.current_state = "mad"
-                case 's':
-                    animation.current_state = "lol"
-                case 'esc':
-                    root.destroy()  # close the program
-                    break
-        else:
-            #key is released
-            animation.current_state = "idle"
+        match key:
+            case 'd':
+                animation.current_state = "idle"
+            case 'a':
+                animation.current_state = "mad"
+            case 's':
+                animation.current_state = "lol"
+            case 'esc':
+                root.destroy()  # close the program
+                break
+
     # detectar micro aqui?
+
 
 def child_thread(root):
     global output_object
@@ -56,7 +56,8 @@ def child_thread(root):
 
     animation = anim.FrameGenerator(working_resolution=working_resolution, ressource_path=BITMAPS_PATH)
     # Start the state machine
-    thread = threading.Thread(target=state_machine, args=(animation, root,))  # nos llevamos el root a la maquina de estados
+    thread = threading.Thread(target=state_machine,
+                              args=(animation, root,))  # nos llevamos el root a la maquina de estados
     thread.daemon = True
     thread.start()
 
