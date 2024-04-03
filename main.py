@@ -34,25 +34,23 @@ label = None
 def state_machine(animation, root):
     """A simple state machine to control the animation
     """
+    print("awake")
+    #hasta que no carge esto, los botones no funcionan, pero no creo que sea problema, tambien hay delay en cambiar de expresiones, ya veremos como lo solucionamos (?)
     while True:
-        try:  # used try so that if user pressed other than the given key error will not be shown
-            if keyboard.is_pressed('a'):
-                print('You Pressed the A Key!')
-                animation.current_state = "mad"
-                #  time.sleep(3)
-            elif keyboard.is_pressed('s'):
-                print('You Pressed the S Key!')
-                animation.current_state = "idle"
-            elif keyboard.is_pressed('d'):
-                print('You Pressed the D Key!')
-                animation.current_state = "lol"
-            elif keyboard.is_pressed('ESC'):
-                print('sacabo XD')
-                root.destroy()  # close the program
-                break
-        except:
+        if keyboard.is_pressed('a'):
+            print('You Pressed the A Key!')
+            animation.current_state = "mad"
+        elif keyboard.is_pressed('s'):
+            print('You Pressed the S Key!')
+            animation.current_state = "idle"
+        elif keyboard.is_pressed('d'):
+            print('You Pressed the D Key!')
+            animation.current_state = "lol"
+        elif keyboard.is_pressed('ESC'):
+            print('sacabo XD')
+            root.destroy()  # close the program
             break
-        # detectar micro aqui?
+    # detectar micro aqui?
 
 
 def child_thread(root):
@@ -61,8 +59,7 @@ def child_thread(root):
 
     animation = anim.FrameGenerator(working_resolution=working_resolution, ressource_path=BITMAPS_PATH)
     # Start the state machine
-    thread = threading.Thread(target=state_machine,
-                              args=(animation, root,))  # nos llevamos el root a la maquina de estados
+    thread = threading.Thread(target=state_machine, args=(animation, root,))  # nos llevamos el root a la maquina de estados
     thread.daemon = True
     thread.start()
 
