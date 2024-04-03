@@ -11,7 +11,7 @@ import time
 import tkinter as tk
 
 import animations as anim
-import keyboard  # python -m pip install keyboard
+import keyboard  # python -m pip install keyboard || requiere acceso root en linux
 
 # Path to the bitmaps folder
 BITMAPS_PATH = "bitmaps/"
