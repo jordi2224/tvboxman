@@ -18,6 +18,8 @@ Animations should have layers matching the names in this list
 # IDLE ANIMATION
 IDLE = {"face": "idle_face.png", "mouth": "idle_mouth.png", "eyes": ["idle_eyes.png", "idle_blink.png"], "flair": None}
 MAD = {"face": "idle_face.png", "mouth": "mad_mouth.png", "eyes": "mad_eyes.png", "flair": None}
+LOL = {"face": "idle_face.png", "mouth": "lol_mouth.png", "eyes": "lol_eyes.png", "flair": None}
+#spicy: LOL = {"face": "idle_face.png", "mouth": ["lol_mouth.png", "idle_mouth.png"], "eyes": "lol_eyes.png", "flair": None}
 
 def generate_image(layers: list, working_resolution: tuple):
     """Gets a layers list and generates the final image
@@ -84,7 +86,7 @@ class FrameGenerator:
         self.current_frame = 0
         self.current_frame_time = 0
         self.current_animation = None
-        self.animations = {"idle": self.idle_animation, "mad": self.mad_animation}
+        self.animations = {"idle": self.idle_animation, "mad": self.mad_animation, "lol": self.lol_animation}
 
         self.working_resolution = working_resolution
         self.background = Image.open(ressource_path + BACKGROUND_FILE).resize(working_resolution)
@@ -94,13 +96,21 @@ class FrameGenerator:
         self.idle_layers = load_layer_images(ressource_path, IDLE, working_resolution)
         self.idle_eyes_state = 0 # 0 is open, 1 is closed
         self.next_change = 0 # Time to change the eyes state
-        self.blink_delay = 60
+        self.blink_delay = 24
         self.blink_duration = 5
         self.idle_animation_buffer = None
 
         # Mad animation initialization
         self.mad_animation_buffer = None
         self.mad_layers = load_layer_images(ressource_path, MAD, working_resolution)
+
+        # Lol animation initialization
+        self.lol_layers = load_layer_images(ressource_path, LOL, working_resolution)
+        self.lol_mouth_state = 0 #open mouth
+        self.next_mouth_change = 0 #Time to change the mouth state
+        self.laugh_delay = 30
+        self.laugh_duration = 10
+        self.lol_animation_buffer = None
         
 
     def execute_animation(self):
@@ -136,7 +146,7 @@ class FrameGenerator:
 
         return self.idle_animation_buffer
             
-        
+
 
     def mad_animation(self):
         """Mad animation
@@ -145,3 +155,12 @@ class FrameGenerator:
             layer_arrays = [self.background, self.mad_layers["face"], self.mad_layers["mouth"], self.mad_layers["eyes"]]
             self.mad_animation_buffer = generate_image(layer_arrays, self.working_resolution)
         return self.mad_animation_buffer
+
+    def lol_animation(self):
+        """Lol animation
+        """
+        if self.lol_animation_buffer is None:
+            # Generate the new frame
+            layer_arrays = [self.background, self.lol_layers["face"], self.lol_layers["mouth"], self.lol_layers["eyes"]]
+            self.lol_animation_buffer = generate_image(layer_arrays, self.working_resolution)
+        return self.lol_animation_buffer

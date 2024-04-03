@@ -1,4 +1,6 @@
 import os
+import sys
+
 import imageio.v2 as imageio
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -7,46 +9,60 @@ from PIL import Image, ImageTk
 import threading
 import time
 import tkinter as tk
+
 import animations as anim
+import keyboard  # python -m pip install keyboard
 
 # Path to the bitmaps folder
 BITMAPS_PATH = "bitmaps/"
 
 # Layers names array
 LAYER_NAMES = ["background", "static_face", "mouth", "eyes"]
-layer_filenames = {"background": "background.png", "static_face": "face.png", "mouth": "mouth.png", "eyes": ["eyes1.png", "eyes2.png"]}
+layer_filenames = {"background": "background.png", "static_face": "face.png", "mouth": "mouth.png",
+                   "eyes": ["eyes1.png", "eyes2.png"]}
 layers = {}
 
 # GUI globals
-TARGET_FRAMERATE = 30
-update_delay = 1/TARGET_FRAMERATE
+TARGET_FRAMERATE = 24  # Vamos a ir con este framerate, pero lo bajaria a 12 ?
+update_delay = 1 / TARGET_FRAMERATE
 working_resolution = None
 output_object = None
 output_buffer = None
 label = None
 
 
-def state_machine(animation):
+def state_machine(animation, root):
     """A simple state machine to control the animation
     """
     while True:
-        # Every 10 seconds, change the state from IDLE to MAD or vice versa
-        if animation.current_state == "idle":
-            animation.current_state = "mad"
-            time.sleep(3)
-        else:
-            animation.current_state = "idle"
-            time.sleep(10) #Diego ERA UN 7
+        try:  # used try so that if user pressed other than the given key error will not be shown
+            if keyboard.is_pressed('a'):
+                print('You Pressed the A Key!')
+                animation.current_state = "mad"
+                #  time.sleep(3)
+            elif keyboard.is_pressed('s'):
+                print('You Pressed the S Key!')
+                animation.current_state = "idle"
+            elif keyboard.is_pressed('d'):
+                print('You Pressed the D Key!')
+                animation.current_state = "lol"
+            elif keyboard.is_pressed('ESC'):
+                print('sacabo XD')
+                root.destroy()  # close the program
+                break
+        except:
+            break
+        # detectar micro aqui?
 
 
-
-def child_thread():
+def child_thread(root):
     global output_object
     global output_buffer
 
     animation = anim.FrameGenerator(working_resolution=working_resolution, ressource_path=BITMAPS_PATH)
     # Start the state machine
-    thread = threading.Thread(target=state_machine, args=(animation,))
+    thread = threading.Thread(target=state_machine,
+                              args=(animation, root,))  # nos llevamos el root a la maquina de estados
     thread.daemon = True
     thread.start()
 
@@ -66,7 +82,6 @@ def child_thread():
         # Sleep by the remaining time)
         while time.time() < target_time:
             pass
-        
 
 
 def blink_delay_humanize(open_base=3, close_base=0.1, open_variance=0.5, close_variance=0.05):
@@ -83,9 +98,6 @@ def blink_delay_humanize(open_base=3, close_base=0.1, open_variance=0.5, close_v
     return [max(0, open_delay), max(0, close_delay)]
 
 
-
-
-
 def main():
     """Main function
     Intializes the GUI by filling global parameters of the full screen window
@@ -97,7 +109,7 @@ def main():
     global output_buffer
     global label
     global working_resolution
-    
+
     # Plot the image using tk
     root = tk.Tk()
     root.title("A pretty face")
@@ -105,7 +117,6 @@ def main():
 
     # Fill the global working resolution with the full screen resolution
     working_resolution = (root.winfo_screenwidth(), root.winfo_screenheight())
-
 
     # Prepare a first image to display
     output_buffer = anim.get_static_first_frame(BITMAPS_PATH, working_resolution)
@@ -116,7 +127,7 @@ def main():
     output_object.pack(fill="both", expand=True)
 
     # Start the child thread before the main loop
-    thread = threading.Thread(target=child_thread)
+    thread = threading.Thread(target=child_thread, args=(root,))  # mando al main thread el root
     thread.daemon = True
     thread.start()
 
