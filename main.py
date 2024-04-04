@@ -46,12 +46,14 @@ class MainWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
         self.setLayout(layout)
-
         # Get the resolution of the screen from the QApplication
-        screen_resolution = app.desktop().screenGeometry()
-        screen_resolution = (screen_resolution.width(), screen_resolution.height())
+        self.screen_resolution = app.desktop().screenGeometry()
+        self.screen_resolution = (self.screen_resolution.width(), self.screen_resolution.height())
+        
+        # animation_resolution = (1080, 720)
+        animation_resolution = self.screen_resolution
 
-        self.animation = anim.FrameGenerator(working_resolution=screen_resolution, ressource_path="bitmaps/")
+        self.animation = anim.FrameGenerator(working_resolution=animation_resolution, ressource_path="bitmaps/")
 
         self.frame_count = 0
         self.start_time = time.time()
@@ -75,6 +77,10 @@ class MainWindow(QWidget):
 
         self.frame_count += 1
         frame = self.animation.execute_animation()
+        # Make the frame the right size
+        # If the animation is not the same size as the screen, resize it
+        if frame.shape != self.screen_resolution:
+            frame = cv2.resize(frame, self.screen_resolution)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         height, width, channel = frame.shape

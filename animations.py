@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
+RENDER_EVERY_FRAME = False
+
 # Animation config, to be moved to a config file
 BACKGROUND_FILE = "background.png" # Background image, shared by all animations
 LAYERS = ["face", "mouth", "eyes", "flair"] # Layers to be added, shared by all animations
@@ -106,9 +108,9 @@ class IdleAnimation(Animation):
     def execute_animation(self):
         """Idle animation
         """
-        if self.animation_buffer is None:
+        if self.animation_buffer is None or RENDER_EVERY_FRAME:
             # Generate the first frame by assuming the eyes are open
-            layer_arrays = [self.background, self.layers["face"], self.layers["mouth"], self.layers["eyes"][0]]
+            layer_arrays = [self.background, self.layers["face"], self.layers["mouth"], self.layers["eyes"][self.eyes_state]]
             self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
         else:
             # Generate a frame with the current eyes state
@@ -137,7 +139,7 @@ class MadAnimation(Animation):
     def execute_animation(self):
         """Mad animation
         """
-        if self.animation_buffer is None:
+        if self.animation_buffer is None or RENDER_EVERY_FRAME:
             layer_arrays = [self.background, self.layers["face"], self.layers["mouth"], self.layers["eyes"]]
             self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
 
