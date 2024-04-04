@@ -1,14 +1,7 @@
-import os
-import imageio.v2 as imageio
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageTk
 import threading
 import time
-import tkinter as tk
 import animations as anim
-import cProfile
 import cv2
 
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QDesktopWidget
@@ -75,18 +68,18 @@ class MainWindow(QWidget):
 
 
     def update_image(self):
-        if self.frame_count % 30 == 0:
-            print("FPS: ", self.frame_count / (time.time() - self.start_time + 1e-6))
+        if self.frame_count % 20 == 0:
+            # Clear previos line
+            print("\rFPS: ", 20 // (time.time() - self.start_time + 1e-6), "                 ", end="")
+            self.start_time = time.time()
 
         self.frame_count += 1
         frame = self.animation.execute_animation()
-        frame = frame.convert("RGB")
-        #frame = cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR)
-        frame = np.array(frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         height, width, channel = frame.shape
         bytesPerLine = 3 * width
-        qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888).rgbSwapped()
         self.image_label.setPixmap(QPixmap.fromImage(qImg))
 
 
