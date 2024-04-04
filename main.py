@@ -1,17 +1,13 @@
-import os
-import sys
-
-import imageio.v2 as imageio
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageTk
 import threading
 import time
-import tkinter as tk
-
 import animations as anim
 import keyboard  # python -m pip install keyboard || requiere acceso root en linux
+import cv2
+
+from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QDesktopWidget
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtCore import QTimer, Qt
 
 # Path to the bitmaps folder
 BITMAPS_PATH = "bitmaps/"
@@ -23,8 +19,9 @@ layer_filenames = {"background": "background.png", "static_face": "face.png", "m
 layers = {}
 
 # GUI globals
-TARGET_FRAMERATE = 24  # Vamos a ir con este framerate, pero lo bajaria a 12 ?
-update_delay = 1 / TARGET_FRAMERATE
+TARGET_FRAMERATE = 300
+update_delay = 1/TARGET_FRAMERATE
+
 working_resolution = None
 output_object = None
 output_buffer = None
@@ -48,90 +45,67 @@ def state_machine(animation, root):
                 break
 
     # detectar micro aqui?
+class MainWindow(QWidget):
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+
+        self.image_label = QLabel()
+        layout = QVBoxLayout()
+        layout.addWidget(self.image_label)
+        self.setLayout(layout)
+        # Get the resolution of the screen from the QApplication
+        self.screen_resolution = app.desktop().screenGeometry()
+        self.screen_resolution = (self.screen_resolution.width(), self.screen_resolution.height())
+        
+        # animation_resolution = (1080, 720)
+        animation_resolution = self.screen_resolution
+
+        self.animation = anim.FrameGenerator(working_resolution=animation_resolution, ressource_path="bitmaps/")
 
 
-def child_thread(root):
-    global output_object
-    global output_buffer
-
-    animation = anim.FrameGenerator(working_resolution=working_resolution, ressource_path=BITMAPS_PATH)
-    # Start the state machine
-    thread = threading.Thread(target=state_machine,
-                              args=(animation, root,))  # nos llevamos el root a la maquina de estados
-    thread.daemon = True
-    thread.start()
-
-    # Tick
-    start = time.time()
-    while True:
-        target_time = time.time() + update_delay
-
-        ### FRAME GENERATION START
-        frame = animation.execute_animation()
-        output_buffer = ImageTk.PhotoImage(frame)
-        output_object.configure(image=output_buffer)
-        output_object.image = output_buffer
-
-        ### FRAME GENERATION END
-
-        # Sleep by the remaining time)
-        while time.time() < target_time:
-            pass
+        self.frame_count = 0
+        self.start_time = time.time()
+        self.update_image()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_image)
+        self.timer.start(1000 // 300)  # Update at 300 FPS
 
 
-def blink_delay_humanize(open_base=3, close_base=0.1, open_variance=0.5, close_variance=0.05):
-    """Generates a random delay time for the blinking of the eyes
-    The delay time is generated using a normal distribution with the given parameters
-
-    input: open_base, close_base, open_variance, close_variance
-    output: delay times for the eyes [open_delay, close_delay]
-    """
-    # Generate two random numbers for the open and close delays
-    open_delay = np.random.normal(open_base, open_variance)
-    close_delay = np.random.normal(close_base, close_variance)
-    # Return the delay times
-    return [max(0, open_delay), max(0, close_delay)]
+        # Launch the state machine
+        self.thread = threading.Thread(target=state_machine, args=(self.animation,))
+        self.thread.daemon = True
+        self.thread.start()
 
 
-def main():
-    """Main function
-    Intializes the GUI by filling global parameters of the full screen window
-    Starts the child thread for updating the image
-    Hands over the control to the tkinter main loop
-    
-    """
-    global output_object
-    global output_buffer
-    global label
-    global working_resolution
+    def update_image(self):
+        if self.frame_count % 20 == 0:
+            # Clear previos line
+            print("\rFPS: ", 20 // (time.time() - self.start_time + 1e-6), "                 ", end="")
+            self.start_time = time.time()
 
-    # Plot the image using tk
-    root = tk.Tk()
-    root.title("A pretty face")
-    root.attributes("-fullscreen", True)
+        self.frame_count += 1
+        frame = self.animation.execute_animation()
+        # Make the frame the right size
+        # If the animation is not the same size as the screen, resize it
+        if frame.shape != self.screen_resolution:
+            frame = cv2.resize(frame, self.screen_resolution)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        height, width, channel = frame.shape
+        bytesPerLine = 3 * width
+        qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888).rgbSwapped()
+        self.image_label.setPixmap(QPixmap.fromImage(qImg))
 
-    # Fill the global working resolution with the full screen resolution
-    working_resolution = (root.winfo_screenwidth(), root.winfo_screenheight())
 
-    # Prepare a first image to display
-    output_buffer = anim.get_static_first_frame(BITMAPS_PATH, working_resolution)
-    img = ImageTk.PhotoImage(output_buffer)
-
-    # Fullscreen output object, shared with the child thread for updating
-    output_object = tk.Label(root, image=img)
-    output_object.pack(fill="both", expand=True)
-
-    # Start the child thread before the main loop
-    thread = threading.Thread(target=child_thread, args=(root,))  # mando al main thread el root
-    thread.daemon = True
-    thread.start()
-
-    # Hand over the control to the tkinter main loop
-    root.mainloop()
-
-    # If the main loop is exited, kill the child thread
-    return 0
-
+    def move_to_screen(self, screen_number):
+        screen = QDesktopWidget().screenGeometry(screen_number)
+        self.move(screen.left(), screen.top())
+        self.showFullScreen()
 
 if __name__ == "__main__":
-    main()
+    #main()
+    app = QApplication([])
+    window = MainWindow()
+    window.move_to_screen(0)
+
+    app.exec_()
