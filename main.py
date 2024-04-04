@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import threading
 import time
@@ -19,7 +20,8 @@ layer_filenames = {"background": "background.png", "static_face": "face.png", "m
 layers = {}
 
 # GUI globals
-TARGET_FRAMERATE = 300
+PRINT_FPS_DEBUG = False
+TARGET_FRAMERATE = 24
 update_delay = 1/TARGET_FRAMERATE
 
 working_resolution = None
@@ -27,8 +29,10 @@ output_object = None
 output_buffer = None
 label = None
 
+stop_main_process_flag = False
 
-def state_machine(animation, root):
+def state_machine(animation):
+    global stop_main_process_flag
     """A simple state machine to control the animation
     """
     while True:
@@ -39,12 +43,16 @@ def state_machine(animation, root):
             case 'a':
                 animation.current_state = "mad"
             case 's':
-                animation.current_state = "lol"
+                animation.current_state = "laugh"
             case 'esc':
-                root.destroy()  # close the program
+                stop_main_process_flag = True
                 break
 
-    # detectar micro aqui?
+    # detectar micro aqui? Sipor?
+
+
+
+
 class MainWindow(QWidget):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -57,7 +65,7 @@ class MainWindow(QWidget):
         self.screen_resolution = app.desktop().screenGeometry()
         self.screen_resolution = (self.screen_resolution.width(), self.screen_resolution.height())
         
-        # animation_resolution = (1080, 720)
+        #animation_resolution = (1080, 720)
         animation_resolution = self.screen_resolution
 
         self.animation = anim.FrameGenerator(working_resolution=animation_resolution, ressource_path="bitmaps/")
@@ -78,7 +86,10 @@ class MainWindow(QWidget):
 
 
     def update_image(self):
-        if self.frame_count % 20 == 0:
+        if stop_main_process_flag:
+            sys.exit(0)
+
+        if self.frame_count % 20 == 0 and PRINT_FPS_DEBUG:
             # Clear previos line
             print("\rFPS: ", 20 // (time.time() - self.start_time + 1e-6), "                 ", end="")
             self.start_time = time.time()
@@ -87,9 +98,11 @@ class MainWindow(QWidget):
         frame = self.animation.execute_animation()
         # Make the frame the right size
         # If the animation is not the same size as the screen, resize it
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         if frame.shape != self.screen_resolution:
             frame = cv2.resize(frame, self.screen_resolution)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
         
         height, width, channel = frame.shape
         bytesPerLine = 3 * width
