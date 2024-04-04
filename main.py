@@ -2,6 +2,7 @@ import numpy as np
 import threading
 import time
 import animations as anim
+import keyboard  # python -m pip install keyboard || requiere acceso root en linux
 import cv2
 
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QDesktopWidget
@@ -13,31 +14,37 @@ BITMAPS_PATH = "bitmaps/"
 
 # Layers names array
 LAYER_NAMES = ["background", "static_face", "mouth", "eyes"]
-layer_filenames = {"background": "background.png", "static_face": "face.png", "mouth": "mouth.png", "eyes": ["eyes1.png", "eyes2.png"]}
+layer_filenames = {"background": "background.png", "static_face": "face.png", "mouth": "mouth.png",
+                   "eyes": ["eyes1.png", "eyes2.png"]}
 layers = {}
 
 # GUI globals
 TARGET_FRAMERATE = 300
 update_delay = 1/TARGET_FRAMERATE
+
 working_resolution = None
 output_object = None
 output_buffer = None
 label = None
 
 
-def state_machine(animation):
+def state_machine(animation, root):
     """A simple state machine to control the animation
     """
     while True:
-        # Every 10 seconds, change the state from IDLE to MAD or vice versa
-        if animation.current_state == "idle":
-            animation.current_state = "mad"
-            time.sleep(3)
-        else:
-            animation.current_state = "idle"
-            time.sleep(7)
+        key = keyboard.read_event().name
+        match key:
+            case 'd':
+                animation.current_state = "idle"
+            case 'a':
+                animation.current_state = "mad"
+            case 's':
+                animation.current_state = "lol"
+            case 'esc':
+                root.destroy()  # close the program
+                break
 
-
+    # detectar micro aqui?
 class MainWindow(QWidget):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -54,6 +61,7 @@ class MainWindow(QWidget):
         animation_resolution = self.screen_resolution
 
         self.animation = anim.FrameGenerator(working_resolution=animation_resolution, ressource_path="bitmaps/")
+
 
         self.frame_count = 0
         self.start_time = time.time()
@@ -82,7 +90,7 @@ class MainWindow(QWidget):
         if frame.shape != self.screen_resolution:
             frame = cv2.resize(frame, self.screen_resolution)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
+        
         height, width, channel = frame.shape
         bytesPerLine = 3 * width
         qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888).rgbSwapped()
