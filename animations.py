@@ -118,13 +118,13 @@ class IdleAnimation(Animation):
         # Idle animation initialization
         self.layers = load_layer_images(ressource_path, IDLE, working_resolution)
         self.eyes_state = 0  # 0 is open, 1 is closed
-        self.open_duration = 5
+        self.open_duration = 15
         self.next_change = self.open_duration  # Time to change the eyes state
         self.blink_duration = 5
         self.animation_buffer = None
         self.mouth_state = 0
-        self.mouth_duration = 2
-        self.mouth_delay = 2
+        self.mouth_duration = 3
+        self.mouth_delay = 3
         self.next_mouth_change = self.mouth_duration
 
     def execute_animation(self, talking):
@@ -199,8 +199,8 @@ class LaughAnimation(Animation):
         # Laugh animation initialization
         self.layers = load_layer_images(ressource_path, LAUGH, working_resolution)
         self.state = 0
-        self.mouth_duration = 6
-        self.mouth_delay = 6
+        self.mouth_duration = 2
+        self.mouth_delay = 2
         self.next_mouth_change = self.mouth_duration
         self.animation_buffer = None
 
@@ -229,7 +229,6 @@ class LaughAnimation(Animation):
 
         self.current_frame += 1
         return self.animation_buffer
-
 
 class FrameGenerator:
     """A class to generate frames based on multiple posible animations
