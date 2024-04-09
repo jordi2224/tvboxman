@@ -39,7 +39,7 @@ audio_power = None
 
 def get_power(stream, N):
     global audio_power
-    print("Recording")
+    # print("Recording")
     samples = stream.read(N)
     samples = np.frombuffer(samples, dtype=np.int16).astype(np.float32)
     audio_power = 10 * np.log10(np.sum(samples**2))
@@ -92,16 +92,15 @@ def state_machine(animation):
                     break
 
         if audio_power is not None:
-            print("Audio power: ", audio_power)
+            if audio_power >= 89: #detectar que estoy hablando, cambiar valor al micro que usaremos
+                animation.talking = True
+                print("Audio power: ", audio_power)
+            else:
+                animation.talking = False
             audio_power = None
             # launch a new recording thread
             recording_thread = threading.Thread(target=get_power, args=(stream, power_recording_samples))
             recording_thread.start()
-
-
-    # detectar micro aqui? Sipor?
-
-
 
 
 class MainWindow(QWidget):
@@ -111,6 +110,7 @@ class MainWindow(QWidget):
         self.image_label = QLabel()
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
         # Get the resolution of the screen from the QApplication
         self.screen_resolution = app.desktop().screenGeometry()
