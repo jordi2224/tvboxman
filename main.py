@@ -5,10 +5,14 @@ import time
 import animations as anim
 import keyboard  # python -m pip install keyboard || requiere acceso root en linux
 import cv2
+import asyncio
 
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QDesktopWidget
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import QTimer, Qt
+
+import pyaudio
+import queue
 
 # Path to the bitmaps folder
 BITMAPS_PATH = "bitmaps/"
@@ -31,26 +35,72 @@ label = None
 
 stop_main_process_flag = False
 
+audio_power = None
+
+def get_power(stream, N):
+    global audio_power
+    # print("Recording")
+    samples = stream.read(N)
+    samples = np.frombuffer(samples, dtype=np.int16).astype(np.float32)
+    audio_power = 10 * np.log10(np.sum(samples**2))
+
+# Create a queue to hold the key press events
+key_queue = queue.Queue()
+
+def read_key():
+    while True:
+        # Read the key press event and put it in the queue
+        key_queue.put(keyboard.read_event().name)
+
+# Start the read_key function in a separate thread
+threading.Thread(target=read_key, daemon=True).start()
+
+
 def state_machine(animation):
-    global stop_main_process_flag
+    global stop_main_process_flag, audio_power
     """A simple state machine to control the animation
     """
+
+    # Local python audio setup
+    p = pyaudio.PyAudio()
+    Fs = 44100
+    stream = p.open(format=pyaudio.paInt16,
+                    channels=1,
+                    rate=Fs,
+                    input=True,
+                    frames_per_buffer=1024)
+    power_recording_time = 0.1
+    power_recording_samples = int(power_recording_time * Fs)
+
+    # Start the recording thread
+    recording_thread = threading.Thread(target=get_power, args=(stream, power_recording_samples))
+    recording_thread.start()
+
     while True:
-        key = keyboard.read_event().name
-        match key:
-            case 'd':
-                animation.current_state = "idle"
-            case 'a':
-                animation.current_state = "mad"
-            case 's':
-                animation.current_state = "laugh"
-            case 'esc':
-                stop_main_process_flag = True
-                break
+        # Check if a key press event is in the queue
+        if not key_queue.empty():
+            key = key_queue.get()
+            match key:
+                case 'd':
+                    animation.current_state = "idle"
+                case 'a':
+                    animation.current_state = "mad"
+                case 's':
+                    animation.current_state = "laugh"
+                case 'esc':
+                    stop_main_process_flag = True
+                    break
 
-    # detectar micro aqui? Sipor?
-
-
+        if audio_power is not None:
+            if audio_power >= 89: #detectar que estoy hablando, cambiar valor al micro que usaremos
+                animation.talking = True
+                print("Audio power: ", audio_power)
+            else:
+                animation.talking = False
+            audio_power = None
+            # launch a new recording thread
+            recording_thread = threading.Thread(target=get_power, args=(stream, power_recording_samples))
+            recording_thread.start()
 
 
 class MainWindow(QWidget):
@@ -60,6 +110,7 @@ class MainWindow(QWidget):
         self.image_label = QLabel()
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
         # Get the resolution of the screen from the QApplication
         self.screen_resolution = app.desktop().screenGeometry()
