@@ -138,6 +138,7 @@ class MainWindow(QWidget):
 
     def update_image(self):
         if stop_main_process_flag:
+            print("Exiting by user request...")
             sys.exit(0)
 
         if self.frame_count % 20 == 0 and PRINT_FPS_DEBUG:

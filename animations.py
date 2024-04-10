@@ -47,16 +47,15 @@ def generate_image(layers: list, working_resolution: tuple):
     """
     final_image = Image.new("RGBA", working_resolution, (0, 0, 0, 0))
     for layer in layers:
+        # If the layer is a list, get the first element
+        # This should not happen, animations should handle this and clean up the list before calling this function
+        if isinstance(layer, list):
+            layer = layer[0]
         # If it is already a PIL image, no need to convert it
         if isinstance(layer, Image.Image):
             final_image = Image.alpha_composite(final_image, layer)
-        elif isinstance(layer, list):
-            # If it's a list, loop through its elements and convert each one to a PIL image
-            for sub_layer in layer:
-                final_image = Image.alpha_composite(final_image, Image.fromarray(sub_layer))
         else:
             final_image = Image.alpha_composite(final_image, Image.fromarray(layer))
-
 
     return np.array(final_image)
 
@@ -205,34 +204,49 @@ class LaughAnimation(Animation):
         super().__init__(working_resolution, ressource_path)
         # Laugh animation initialization
         self.layers = load_layer_images(ressource_path, LAUGH, working_resolution)
-        self.state = 0
+        self.eyes_state = 0
+        self.mouth_state = 0
         self.mouth_duration = 2
         self.mouth_delay = 2
         self.next_mouth_change = self.mouth_duration
         self.animation_buffer = None
 
     def execute_animation(self, talking):
-        if self.animation_buffer is None or RENDER_EVERY_FRAME:
-            layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][0], self.layers["eyes"]]
+        """Laugh animation
+        """
+        print("Current frame", self.current_frame)
+        # If the animation buffer is empty, we haven't been initialized yet
+        if self.animation_buffer is None:
+            # Generate the first frame by assuming the eyes are open
+            layer_arrays = [self.background, self.layers["face"], self.layers["mouth"],
+                            self.layers["eyes"][self.eyes_state]]
             self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
+            # Exit early
+            return self.animation_buffer
+        
+         # Any of the layers changed?
+        rerender = False
+
+        # Are we talking?
+        if talking:
+            self.mouth_state = (self.mouth_state + 1) % len(self.layers["mouth"])
+            rerender = True
+        # Were we talking before?
         else:
-            # Do we need to change the mouth state?
-            if talking and self.current_frame >= self.next_mouth_change:
-                # Change the mouth state
-                self.state = 1 - self.state
-                if self.state == 0:
-                    self.next_mouth_change = self.current_frame + self.mouth_delay
-                else:
-                    self.next_mouth_change = self.current_frame + self.mouth_delay
-                # Generate the new frame
-                layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.state],
-                                self.layers["eyes"]]
-                self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
-            if not talking:
-                self.state = 0
-                layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.state],
-                                self.layers["eyes"]]
-                self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
+            # This code is pretty pointless right??? Even if we are not talking we are still changing the mouth????? WTF?
+            # Do we need to change the mouth regardless?
+            if self.current_frame >= self.next_mouth_change:
+                self.mouth_state = (self.mouth_state + 1) % len(self.layers["mouth"])
+                self.next_mouth_change = self.current_frame + self.mouth_duration
+
+                rerender = True
+
+        # Did we change anything?
+        if rerender or RENDER_EVERY_FRAME:
+            layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.mouth_state],
+                            self.layers["eyes"][self.eyes_state]]
+            self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
+        
 
         self.current_frame += 1
         return self.animation_buffer
