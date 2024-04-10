@@ -214,7 +214,6 @@ class LaughAnimation(Animation):
     def execute_animation(self, talking):
         """Laugh animation
         """
-        print("Current frame", self.current_frame)
         # If the animation buffer is empty, we haven't been initialized yet
         if self.animation_buffer is None:
             # Generate the first frame by assuming the eyes are open
