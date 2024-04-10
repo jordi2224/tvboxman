@@ -23,13 +23,13 @@ IDLE = {"face": "idle_face.png",
         "flair": None}
 
 MAD = {"face": "idle_face.png",
-       "mouth": "mad_mouth.png",
-       "eyes": "mad_eyes.png",
+       "mouth": ["mad_mouth.png"],
+       "eyes": ["mad_eyes.png"],
        "flair": None}
 
 LAUGH = {"face": "idle_face.png",
          "mouth": ["laugh/boca_risa_1.png", "laugh/boca_risa_2.png"],
-         "eyes": "laugh/ojos_risa.png",
+         "eyes": ["laugh/ojos_risa.png"],
          "flair": None}
 
 
@@ -127,48 +127,55 @@ class IdleAnimation(Animation):
         self.mouth_delay = 3
         self.next_mouth_change = self.mouth_duration
 
+    def advance_eyes(self):
+        self.eyes_state = (self.eyes_state + 1) % len(self.layers["eyes"])
+        # Are we back to the open eyes?
+        if self.eyes_state == 0:
+            self.next_change = self.current_frame + self.open_duration
+        else:
+            self.next_change = self.current_frame + self.blink_duration
+
+        
     def execute_animation(self, talking):
         """Idle animation
         """
-        if self.animation_buffer is None or RENDER_EVERY_FRAME:
+        # If the animation buffer is empty, we haven't been initialized yet
+        if self.animation_buffer is None:
             # Generate the first frame by assuming the eyes are open
             layer_arrays = [self.background, self.layers["face"], self.layers["mouth"],
                             self.layers["eyes"][self.eyes_state]]
             self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
-        else:
-            # Generate a frame with the current eyes state
-            # Do we need to change the eyes state?
-            if self.current_frame >= self.next_change:
-                self.eyes_state = (self.eyes_state + 1) % len(IDLE["eyes"])
-                if self.eyes_state == 0:
-                    self.next_change = self.current_frame + self.open_duration
-                else:
-                    self.next_change = self.current_frame + self.blink_duration
-                # Create the new frame
-                layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.mouth_state],
-                                self.layers["eyes"][self.eyes_state]]
-                self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
+            # Exit early
+            return self.animation_buffer
+        
 
-                self.current_frame += 1
-                return self.animation_buffer
+        # Can we leave the current frame?
+        if not talking and self.current_frame <= self.next_change:
+            # Cache is valid, we can return it
+            self.current_frame += 1
+            return self.animation_buffer
+        # Any of the layers changed?
+        rerender = False
 
-            #Guarrada, esto podría ser una clase para ahorrar lineas ?
-            if talking and self.current_frame >= self.next_mouth_change:
-                # Change the mouth state
-                self.mouth_state = (self.mouth_state + 1) % len(IDLE["mouth"])
-                if self.mouth_state == 0:
-                    self.next_mouth_change = self.current_frame + self.mouth_delay
-                else:
-                    self.next_mouth_change = self.current_frame + self.mouth_delay
-                # Generate the new frame
-                layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.mouth_state],
-                                self.layers["eyes"]]
-                self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
-            if not talking:
-                self.mouth_state = 0
-                layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.mouth_state],
-                                self.layers["eyes"]]
-                self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
+        # Are we talking?
+        if talking:
+            self.mouth_state = (self.mouth_state + 1) % len(self.layers["mouth"])
+            rerender = True  
+        # Were we talking before?
+        elif self.mouth_state != 0:
+            self.mouth_state = 0
+            rerender = True
+
+        # We need to change eyes
+        if self.current_frame >= self.next_change:
+            self.advance_eyes()
+            rerender = True
+
+        # Did we change anything?
+        if rerender or RENDER_EVERY_FRAME:
+            layer_arrays = [self.background, self.layers["face"], self.layers["mouth"][self.mouth_state],
+                            self.layers["eyes"][self.eyes_state]]
+            self.animation_buffer = generate_image(layer_arrays, self.working_resolution)
 
         self.current_frame += 1
         return self.animation_buffer
