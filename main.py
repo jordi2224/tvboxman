@@ -80,16 +80,15 @@ def state_machine(animation):
         # Check if a key press event is in the queue
         if not key_queue.empty():
             key = key_queue.get()
-            match key:
-                case 'd':
-                    animation.current_state = "idle"
-                case 'a':
-                    animation.current_state = "mad"
-                case 's':
-                    animation.current_state = "laugh"
-                case 'esc':
-                    stop_main_process_flag = True
-                    break
+            if key == 'd':
+                animation.current_state = "idle"
+            elif key =='a':
+                animation.current_state = "mad"
+            elif key == 's':
+                animation.current_state = "laugh"
+            elif key == 'esc':
+                stop_main_process_flag = True
+                break
 
         if audio_power is not None:
             if audio_power >= 89: #detectar que estoy hablando, cambiar valor al micro que usaremos
