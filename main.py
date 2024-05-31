@@ -27,7 +27,10 @@ PRINT_FPS_DEBUG = False
 TARGET_FRAMERATE = 24
 update_delay = 1/TARGET_FRAMERATE
 
-working_resolution = None
+# Resolution downscale factor
+DO_DOWNSCALE = True
+downscale_factor = 7
+
 output_object = None
 output_buffer = None
 label = None
@@ -114,8 +117,12 @@ class MainWindow(QWidget):
         self.screen_resolution = app.desktop().screenGeometry()
         self.screen_resolution = (self.screen_resolution.width(), self.screen_resolution.height())
         
-        #animation_resolution = (1080, 720)
-        animation_resolution = self.screen_resolution
+        #Checl if we need to downscale the resolution
+        if DO_DOWNSCALE:
+            animation_resolution = (self.screen_resolution[0]//downscale_factor, self.screen_resolution[1]//downscale_factor)
+        else:
+            # Use the screen resolution as the animation resolution
+            animation_resolution = self.screen_resolution
 
         self.animation = anim.FrameGenerator(working_resolution=animation_resolution, ressource_path="bitmaps/")
 
@@ -125,7 +132,7 @@ class MainWindow(QWidget):
         self.update_image()
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_image)
-        self.timer.start(1000 // 300)  # Update at 300 FPS
+        self.timer.start(int(update_delay * 1000))
 
 
         # Launch the state machine
@@ -144,6 +151,7 @@ class MainWindow(QWidget):
             print("\rFPS: ", 20 // (time.time() - self.start_time + 1e-6), "                 ", end="")
             self.start_time = time.time()
 
+
         self.frame_count += 1
         frame = self.animation.execute_animation()
         frame = frame.astype(np.uint8)
@@ -152,7 +160,7 @@ class MainWindow(QWidget):
 
         # Make the frame the right size
         # If the animation is not the same size as the screen, resize it
-        if working_resolution != self.screen_resolution:
+        if image.size != self.screen_resolution:
             image = image.resize(self.screen_resolution)
 
         # Convert the image to a QImage
