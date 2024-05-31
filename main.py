@@ -4,8 +4,7 @@ import threading
 import time
 import animations as anim
 import keyboard  # python -m pip install keyboard || requiere acceso root en linux
-import cv2
-import asyncio
+from PIL import Image
 
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QDesktopWidget
 from PyQt5.QtGui import QPixmap, QImage
@@ -147,17 +146,17 @@ class MainWindow(QWidget):
 
         self.frame_count += 1
         frame = self.animation.execute_animation()
+        frame = frame.astype(np.uint8)
+        image = Image.fromarray(frame)
+        image = image.convert("RGB")
+
         # Make the frame the right size
         # If the animation is not the same size as the screen, resize it
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if working_resolution != self.screen_resolution:
+            image = image.resize(self.screen_resolution)
 
-        if frame.shape != self.screen_resolution:
-            frame = cv2.resize(frame, self.screen_resolution)
-        
-        
-        height, width, channel = frame.shape
-        bytesPerLine = 3 * width
-        qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888).rgbSwapped()
+        # Convert the image to a QImage
+        qImg = QImage(image.tobytes(), image.size[0], image.size[1], QImage.Format_RGB888)
         self.image_label.setPixmap(QPixmap.fromImage(qImg))
 
 
