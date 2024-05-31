@@ -26,12 +26,16 @@ layers = {}
 
 # GUI globals
 PRINT_FPS_DEBUG = False
-TARGET_FRAMERATE = 24
+TARGET_FRAMERATE = 240
 update_delay = 1/TARGET_FRAMERATE
 
-# Resolution downscale factor
-DO_DOWNSCALE = True
-downscale_factor = 7
+# Force screen resolution
+FORCE_SCREEN_RESOLUTION = True
+FORCED_SCREEN_RESOLUTION = (700, 500)
+
+# Animation downscale factor
+DO_DOWNSCALE = False
+downscale_factor = 2
 
 output_object = None
 output_buffer = None
@@ -75,10 +79,7 @@ def state_machine(animation):
     """A simple state machine to control the animation
     """
 
-    # Create a heartbeat file to signal that this thread was started
-    with open("heartbeat.txt", "w") as f:
-        f.write("alive")
-    
+    # Currently not working on linux and crashes the thread
     if DO_AUDIO:
         # Local python audio setup
         p = pyaudio.PyAudio()
@@ -130,9 +131,15 @@ class MainWindow(QWidget):
         layout.addWidget(self.image_label)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-        # Get the resolution of the screen from the QApplication
-        self.screen_resolution = app.desktop().screenGeometry()
-        self.screen_resolution = (self.screen_resolution.width(), self.screen_resolution.height())
+
+        if FORCE_SCREEN_RESOLUTION:
+            self.screen_resolution = FORCED_SCREEN_RESOLUTION
+        else:
+            # Get the resolution of the screen from the QApplication
+            self.screen_resolution = app.desktop().screenGeometry()
+            self.screen_resolution = (self.screen_resolution.width(), self.screen_resolution.height())
+
+        print("Screen resolution: ", self.screen_resolution)
         
         #Checl if we need to downscale the resolution
         if DO_DOWNSCALE:
@@ -188,6 +195,9 @@ class MainWindow(QWidget):
     def move_to_screen(self, screen_number):
         screen = QDesktopWidget().screenGeometry(screen_number)
         self.move(screen.left(), screen.top())
+        print("Screen resolution: ", self.screen_resolution)
+        self.resize(self.screen_resolution[0], self.screen_resolution[1])
+        #self.showNormal()
         self.showFullScreen()
 
 if __name__ == "__main__":
