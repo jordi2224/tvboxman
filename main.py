@@ -13,6 +13,8 @@ from PyQt5.QtCore import QTimer, Qt
 import pyaudio
 import queue
 
+import signal
+
 # Path to the bitmaps folder
 BITMAPS_PATH = "bitmaps/"
 
@@ -35,9 +37,19 @@ output_object = None
 output_buffer = None
 label = None
 
+# State machine
+DO_AUDIO = False
 stop_main_process_flag = False
-
 audio_power = None
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal_timer = QTimer()
+signal_timer.start(200)
+signal_timer.timeout.connect(lambda: None)
 
 def get_power(stream, N):
     global audio_power
@@ -63,20 +75,25 @@ def state_machine(animation):
     """A simple state machine to control the animation
     """
 
-    # Local python audio setup
-    p = pyaudio.PyAudio()
-    Fs = 44100
-    stream = p.open(format=pyaudio.paInt16,
-                    channels=1,
-                    rate=Fs,
-                    input=True,
-                    frames_per_buffer=1024)
-    power_recording_time = 0.1
-    power_recording_samples = int(power_recording_time * Fs)
+    # Create a heartbeat file to signal that this thread was started
+    with open("heartbeat.txt", "w") as f:
+        f.write("alive")
+    
+    if DO_AUDIO:
+        # Local python audio setup
+        p = pyaudio.PyAudio()
+        Fs = 44100
+        stream = p.open(format=pyaudio.paInt16,
+                        channels=1,
+                        rate=Fs,
+                        input=True,
+                        frames_per_buffer=1024)
+        power_recording_time = 0.1
+        power_recording_samples = int(power_recording_time * Fs)
 
-    # Start the recording thread
-    recording_thread = threading.Thread(target=get_power, args=(stream, power_recording_samples))
-    recording_thread.start()
+        # Start the recording thread
+        recording_thread = threading.Thread(target=get_power, args=(stream, power_recording_samples))
+        recording_thread.start()
 
     while True:
         # Check if a key press event is in the queue
@@ -92,7 +109,7 @@ def state_machine(animation):
                 stop_main_process_flag = True
                 break
 
-        if audio_power is not None:
+        if DO_AUDIO and audio_power is not None:
             if audio_power >= 89: #detectar que estoy hablando, cambiar valor al micro que usaremos
                 animation.talking = True
                 print("Audio power: ", audio_power)
